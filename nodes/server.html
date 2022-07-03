@@ -1,5 +1,5 @@
-<script type="text/x-red" data-template-name="zigbee2mqtt-server">
-    <link rel="stylesheet" href="zigbee2mqtt/static/css/common.css" type="text/css" />
+<script type="text/x-red" data-template-name="zwavejs2mqtt2-server">
+    <link rel="stylesheet" href="zwavejs2mqtt2/static/css/common.css" type="text/css" />
     <input autocomplete="false" name="hidden" type="text" style="display:none;">
 
     <div class="form-row">
@@ -12,8 +12,13 @@
     </div>
     <div class="form-row">
         <label for="node-config-input-base_topic" class="l-width"><i class="fa fa-bookmark"></i> <span data-i18n="label.base_topic"></span></label>
-        <input type="text" id="node-config-input-base_topic" placeholder="zigbee2mqtt">
+        <input type="text" id="node-config-input-base_topic" placeholder="zwavejs2mqtt2">
     </div>
+    <div class="form-row">
+        <label for="node-config-input-base_mqtt_name" class="l-width"><i class="fa fa-bookmark"></i> <span data-i18n="label.base_mqtt_name"></span></label>
+        <input type="text" id="node-config-input-base_mqtt_name" placeholder="myServer">
+    </div>
+
     <div class="form-row">
         <label for="node-config-input-mqtt_port" class="l-width"><i class="fa fa-asterisk"></i> <span data-i18n="label.mqtt_port"></span></label>
         <input type="text" id="node-config-input-mqtt_port" placeholder="1883">
@@ -38,7 +43,7 @@
 </script>
 
 <script type='text/javascript'>
-    RED.nodes.registerType('zigbee2mqtt-server', {
+    RED.nodes.registerType('zwavejs2mqtt2-server', {
         category: 'config',
         defaults: {
             name: {
@@ -64,9 +69,14 @@
             tls: {type:"tls-config",required: false},
             usetls: {value: false},
             base_topic: {
-                value: 'zigbee2mqtt',
+                value: 'zwavejs2mqtt2',
                 required: true
             },
+            base_mqtt_name: {
+                value: 'myServer',
+                required: true
+            },
+          
         },
         label: function() {
             return this.name ||  this.host;

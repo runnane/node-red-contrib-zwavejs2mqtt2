@@ -1,4 +1,4 @@
-const Zigbee2mqttHelper = require('../lib/Zigbee2mqttHelper.js');
+const zwavejs2mqtt2helper = require('../lib/zwavejs2mqtt2helper.js');
 var mqtt = require('mqtt');
 var TimeAgo = require('javascript-time-ago');
 var TimeAgoEn = require('javascript-time-ago/locale/en');
@@ -8,7 +8,7 @@ TimeAgo.addLocale(TimeAgoEn);
 
 
 module.exports = function(RED) {
-    class Zigbee2mqttNodeIn {
+    class zwavejs2mqtt2NodeIn {
         constructor(config) {
             RED.nodes.createNode(this, config);
 
@@ -47,7 +47,7 @@ module.exports = function(RED) {
                 node.status({
                     fill: "red",
                     shape: "dot",
-                    text: "node-red-contrib-zigbee2mqtt/in:status.no_server"
+                    text: "node-red-contrib-zwavejs2mqtt2/in:status.no_server"
                 });
             }
         }
@@ -57,7 +57,7 @@ module.exports = function(RED) {
             node.status({
                 fill: "red",
                 shape: "dot",
-                text: "node-red-contrib-zigbee2mqtt/in:status.no_connection"
+                text: "node-red-contrib-zwavejs2mqtt2/in:status.no_connection"
             });
         }
 
@@ -89,7 +89,7 @@ module.exports = function(RED) {
             // node.status({
             //     fill: "green",
             //     shape: "dot",
-            //     text: "node-red-contrib-zigbee2mqtt/in:status.connected"
+            //     text: "node-red-contrib-zwavejs2mqtt2/in:status.connected"
             // });
             // node.cleanTimer = setTimeout(function () {
             //     node.status({}); //clean
@@ -98,50 +98,36 @@ module.exports = function(RED) {
 
         onMQTTMessage(data) {
             var node = this;
+          
 
-
-            if ( (data.device && "ieeeAddr" in data.device && data.device.ieeeAddr == node.config.device_id)
-            || (data.group && "ID" in data.group && data.group.ID == node.config.device_id) ) {
+            if ( data.device && "id" in data.device && data.device.id == node.config.device_id ) {
+              
+                
                 //ignore /set
-                if (data.topic.search(new RegExp(node.server.getBaseTopic()+'\/'+node.config.friendly_name+'\/set')) === 0) {
+                if (data.topic.search(new RegExp(node.server.getBaseTopic()+'\/'+node.config.name+'\/set')) === 0) {
                     return;
                 }
-
+              
                 clearTimeout(node.cleanTimer);
                 if (node.firstMsg && !node.config.outputAtStartup) {
                     node.firstMsg = false;
                     return;
                 }
 
-
-                if (data.device) {
-                    var homekit_payload = Zigbee2mqttHelper.payload2homekit(data.payload, data.device);
-                    var format_payload = Zigbee2mqttHelper.formatPayload(data.payload, data.device);
-                } else if (data.group) {
-                    var homekit_payload = Zigbee2mqttHelper.payload2homekit(data.payload, data.group);
-                    var format_payload = Zigbee2mqttHelper.formatPayload(data.payload, data.group);
-                } else {
-                    var homekit_payload = null;
-                    var format_payload = null;
-                }
-
-
                 var payload = data.payload;
                 if (parseInt(node.config.state) != 0) {
                     if (node.config.state in data.payload) {
                         payload = data.payload[node.config.state];
-                    } else if (homekit_payload && node.config.state.split("homekit_").join('') in homekit_payload) {
-                        payload = homekit_payload[node.config.state.split("homekit_").join('')];
                     }
                 }
 
                 node.send({
-                    payload: payload,
+                    topic: data.device.name  + "/" + payload.data[1].propertyName,
+                    payload: payload.data[1].newValue,
+                    data: payload.data[1],
                     payload_raw: data.payload,
                     device: data.device,
-                    group: data.group,
-                    homekit: homekit_payload,
-                    format: format_payload
+                
                 });
 
                 node.updateTextStatus('dot');
@@ -156,7 +142,7 @@ module.exports = function(RED) {
             var node = this;
 
             var payload = null;
-            var text = RED._("node-red-contrib-zigbee2mqtt/in:status.received");
+            var text = RED._("node-red-contrib-zwavejs2mqtt2/in:status.received");
             var fill = 'green';
             var timeSign = '';
 
@@ -219,7 +205,7 @@ module.exports = function(RED) {
 
 
     }
-    RED.nodes.registerType('zigbee2mqtt-in', Zigbee2mqttNodeIn);
+    RED.nodes.registerType('zwavejs2mqtt2-in', zwavejs2mqtt2NodeIn);
 };
 
 

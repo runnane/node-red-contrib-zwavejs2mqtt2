@@ -1,6 +1,6 @@
-<script type="text/x-red" data-template-name="zigbee2mqtt-out">
-    <link rel="stylesheet" href="zigbee2mqtt/static/css/multiple-select.css" type="text/css" />
-    <link rel="stylesheet" href="zigbee2mqtt/static/css/common.css" type="text/css" />
+<script type="text/x-red" data-template-name="zwavejs2mqtt2-out">
+    <link rel="stylesheet" href="zwavejs2mqtt2/static/css/multiple-select.css" type="text/css" />
+    <link rel="stylesheet" href="zwavejs2mqtt2/static/css/common.css" type="text/css" />
 
     <div class="form-row">
         <label for="node-input-name" class="l-width"><i class="fa fa-bookmark"></i> <span data-i18n="label.name"></span></label>
@@ -32,6 +32,11 @@
         <input type="text" id="node-input-payload" style="width:70%">
         <input type="hidden" id="node-input-payloadType">
     </div>
+    <div class="form-row">
+        <label for="node-input-payload" class="l-width"><i class="fa fa-envelope"></i> <span data-i18n="label.commandClass"></span></label>
+        <input type="text" id="node-input-commandClass" style="width:70%">
+        <input type="hidden" id="node-input-commandClassType">
+    </div>
 
 
     <div class="form-row node-input-rule-container-row">
@@ -39,11 +44,7 @@
     </div>
     <hr>
 
-    <!--homekit-->
-    <div class="form-tips help_block help_block__homekit_homekit">
-        <strong><span data-i18n="help.important"></span></strong><br>
-        <span data-i18n="help.command_homekit"></span>
-    </div>
+    
     <!--brightness_move-->
     <div class="form-tips help_block help_block__z2m_cmd_brightness_move">
         <strong><span data-i18n="help.description"></span></strong><br>
@@ -68,8 +69,8 @@
 </script>
 
 <script type='text/javascript'>
-    RED.nodes.registerType('zigbee2mqtt-out', {
-        category: 'Zigbee2mqtt',
+    RED.nodes.registerType('zwavejs2mqtt2-out', {
+        category: 'zwavejs2mqtt2',
         color: '#FDBF48',
         align: 'right',
         defaults: {
@@ -77,7 +78,7 @@
                 value: ""
             },
             server: {
-                type: "zigbee2mqtt-server",
+                type: "zwavejs2mqtt2-server",
                 required: true
             },
             friendly_name: {
@@ -98,6 +99,12 @@
                 value: 'payload',
             },
             payloadType: {
+                value: 'msg',
+            },
+            commandClass: {
+                value: 'payload',
+            },
+            commandClassType: {
                 value: 'msg',
             },
             transition: {
@@ -131,33 +138,20 @@
         oneditprepare: function() {
             var node = this;
 
-            var topicTypes = {
-                value: 'z2m_cmd',
-                label: 'zigbee2mqtt',
-                icon: 'icons/node-red-contrib-zigbee2mqtt/icon.png',
-                options: [
-                    {'value':'state', 'label':'State (on|off|toggle)'},
-                    {'value':'brightness', 'label':'Brightness (0..255)'},
-                    {'value':'brightness_move', 'label':'Brightness Move (-255...255|stop)'},
-                    {'value':'brightness_step', 'label':'Brightness Step (-255...255)'},
-                    {'value':'color', 'label':'Color: {}'},
-                    {'value':'color_rgb', 'label':'Color: r,g,b'},
-                    {'value':'color_hex', 'label':'Color: #hex'},
-                    {'value':'color_hsb', 'label':'Color: h,s,b'},
-                    {'value':'color_hsv', 'label':'Color: h,s,v'},
-                    {'value':'color_hue', 'label':'Color: hue'},
-                    {'value':'color_saturation', 'label':'Color: saturation'},
-                    {'value':'color_temp', 'label':'Color Temperature (50..400)'},
-                    {'value':'position', 'label':'Position'},
-                    'alert'
-                ]
-            };
             $('#node-input-command').typedInput({
-                types: [topicTypes, {value:'homekit',label:'homekit',icon: 'icons/node-red-contrib-zigbee2mqtt/homekit-logo.png',options:['homekit']}, 'str', 'msg', {value:'json',label:'JSON',options:['{}']}],
+                types: ['str', 'msg', {value:'json',label:'JSON',options:['{}']}],
                 default: 'msg',
                 value: 'topic',
                 typeField: $('#node-input-commandType'),
             });
+
+            $('#node-input-commandClass').typedInput({
+                types: ['str', 'msg', {value:'json',label:'JSON',options:['{}']}],
+                default: 'msg',
+                value: 'commandClass',
+                typeField: $('#node-input-commandClassType'),
+            });
+
 
             $('#node-input-device_id').on('change', function(type, value) {
                 $('#node-input-command').trigger('change');
@@ -195,8 +189,8 @@
                 if (options.length) {
                     var payloadTypes = {
                         value: 'z2m_payload',
-                        label: 'zigbee2mqtt',
-                        icon: 'icons/node-red-contrib-zigbee2mqtt/icon.png',
+                        label: 'zwavejs2mqtt2',
+                        icon: 'icons/node-red-contrib-zwavejs2mqtt2/icon.png',
                         options: options
                     };
                     $('#node-input-payload').typedInput('types', [payloadTypes, 'msg', 'flow', 'global', 'str', 'num', 'json']);
@@ -205,19 +199,17 @@
                 }
 
                 //show/hide
-                if (['homekit'].indexOf(val) >= 0) {
-                    $('#node-input-payload').closest('.form-row').hide();
-                } else {
-                    $('#node-input-payload').closest('.form-row').show();
-                }
+                
+                $('#node-input-payload').closest('.form-row').show();
+                
             });
 
 
             //init typedInput
             var payloadTypes = {
                 value: 'z2m_payload',
-                label: 'zigbee2mqtt',
-                icon: 'icons/node-red-contrib-zigbee2mqtt/icon.png',
+                label: 'zwavejs2mqtt2',
+                icon: 'icons/node-red-contrib-zwavejs2mqtt2/icon.png',
                 options: []
             };
             $('#node-input-payload').typedInput({
@@ -228,6 +220,7 @@
             });
             $('#node-input-commandType').val(node.commandType);
             $('#node-input-payloadType').val(node.payloadType);
+            $('#node-input-commandClassType').val(node.commandClassType);
 
 
 

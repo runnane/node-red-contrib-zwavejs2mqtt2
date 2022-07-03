@@ -1,5 +1,5 @@
 var request = require('request');
-var NODE_PATH = '/zigbee2mqtt/';
+var NODE_PATH = '/zwavejs2mqtt2/';
 
 module.exports = function(RED) {
 
@@ -13,12 +13,14 @@ module.exports = function(RED) {
 
 
     RED.httpAdmin.get(NODE_PATH + 'getDevices', function (req, res) {
+        //console.log("getDevices()");
         var config = req.query;
         var controller = RED.nodes.getNode(config.controllerID);
         var forceRefresh = config.forceRefresh ? ['1', 'yes', 'true'].includes(config.forceRefresh.toLowerCase()) : false;
 
         if (controller && controller.constructor.name === "ServerNode") {
             controller.getDevices(function (items) {
+                //console.log(items);
                 if (items) {
                     res.json(items);
                 } else {
@@ -31,6 +33,8 @@ module.exports = function(RED) {
     });
 
     RED.httpAdmin.get(NODE_PATH + 'getLastStateById', function (req, res) {
+        //console.log("getLastStateById()");
+        //console.log(config);
         var config = req.query;
         var controller = RED.nodes.getNode(config.controllerID);
         if (controller && controller.constructor.name === "ServerNode") {

@@ -29,7 +29,7 @@
         "refresh": "Refresh devices list",
         "none_selected": "None selected",
         "complete_payload": "Complete state payload",
-        "zigbee2mqtt": "Zigbee2Mqtt",
+        "zwavejs2mqtt2": "zwavejs2mqtt2",
         "homekit": "Homekit",
         "groups": "Groups"
     },

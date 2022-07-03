@@ -1,8 +1,8 @@
-const Zigbee2mqttHelper = require('../lib/Zigbee2mqttHelper.js');
+const zwavejs2mqtt2helper = require('../lib/zwavejs2mqtt2helper.js');
 var mqtt = require('mqtt');
 
 module.exports = function(RED) {
-    class Zigbee2mqttNodeOut {
+    class zwavejs2mqtt2NodeOut {
         constructor(config) {
             RED.nodes.createNode(this, config);
 
@@ -20,6 +20,7 @@ module.exports = function(RED) {
                     if (node.config.device_id) {
                         var payload;
                         var options = {};
+                        var commandClass;
                         switch (node.config.payloadType) {
                             case 'flow':
                             case 'global': {
@@ -36,9 +37,6 @@ module.exports = function(RED) {
                             //     payload = Date.now();
                             //     break;
                             // }
-                            case 'z2m_payload':
-                                payload = node.config.payload;
-                                break;
 
                             case 'num': {
                                 payload = parseInt(node.config.payload);
@@ -51,14 +49,14 @@ module.exports = function(RED) {
                             }
 
                             case 'json': {
-                                if (Zigbee2mqttHelper.isJson(node.config.payload)) {
+                                if (zwavejs2mqtt2helper.isJson(node.config.payload)) {
                                     payload = JSON.parse(node.config.payload);
                                 } else {
                                     node.warn('Incorrect payload. Waiting for valid JSON');
                                     node.status({
                                         fill: "red",
                                         shape: "dot",
-                                        text: "node-red-contrib-zigbee2mqtt/out:status.no_payload"
+                                        text: "node-red-contrib-zwavejs2mqtt2/out:status.no_payload"
                                     });
                                     node.cleanTimer = setTimeout(function(){
                                         node.status({}); //clean
@@ -67,13 +65,58 @@ module.exports = function(RED) {
                                 break;
                             }
 
-                            // case 'homekit':
-                            //     payload = node.formatHomeKit(message, payload);
-                            //     break;
-
+                            
                             case 'msg':
                             default: {
                                 payload = message[node.config.payload];
+                                break;
+                            }
+                        }
+
+                        switch (node.config.commandClassType) {
+                            case 'flow':
+                            case 'global': {
+                                RED.util.evaluateNodeProperty(node.config.commandClass, node.config.commandClassType, this, message, function (error, result) {
+                                    if (error) {
+                                        node.error(error, message);
+                                    } else {
+                                        commandClass = result;
+                                    }
+                                });
+                                break;
+                            }
+
+                            case 'num': {
+                                commandClass = parseInt(node.config.commandClass);
+                                break;
+                            }
+
+                            case 'str': {
+                                commandClass = node.config.commandClass;
+                                break;
+                            }
+
+                            case 'json': {
+                                if (zwavejs2mqtt2helper.isJson(node.config.commandClass)) {
+                                    commandClass = JSON.parse(node.config.commandClass);
+                                } else {
+                                    node.warn('Incorrect commandClass. Waiting for valid JSON');
+                                    node.status({
+                                        fill: "red",
+                                        shape: "dot",
+                                        text: "node-red-contrib-zwavejs2mqtt2/out:status.no_payload"
+                                    });
+                                    node.cleanTimer = setTimeout(function(){
+                                        node.status({}); //clean
+                                    }, 3000);
+                                }
+                                break;
+                            }
+
+                            
+                            case 'msg':
+                            default: {
+                                commandClass = message[node.config.commandClass];
                                 break;
                             }
                         }
@@ -87,84 +130,6 @@ module.exports = function(RED) {
                                 command = message[node.config.command];
                                 break;
                             }
-                            case 'z2m_cmd':
-                                command = node.config.command;
-                                switch (command) {
-                                    case 'state':
-                                        if ("transition" in node.config && (node.config.transition).length > 0) {
-                                            options['transition'] = parseInt(node.config.transition);
-                                        }
-                                        break;
-                                    case 'brightness':
-                                        payload = parseInt(payload);
-                                        options["state"] = payload>0?"on":"Off";
-                                        if ("transition" in node.config && (node.config.transition).length > 0) {
-                                            options['transition'] = parseInt(node.config.transition);
-                                        }
-                                        break;
-
-                                    case 'position':
-                                        payload = parseInt(payload);
-                                        break;
-
-                                    case 'color':
-                                        payload =  {"color":payload};
-                                        break;
-                                    case 'color_rgb':
-                                        payload =  {"color":{"rgb": payload}};
-                                        break;
-                                    case 'color_hex':
-                                        command = "color";
-                                        payload =  {"color":{"hex": payload}};
-                                        break;
-                                    case 'color_hsb':
-                                        command = "color";
-                                        payload =  {"color":{"hsb": payload}};
-                                        break;
-                                    case 'color_hsv':
-                                        command = "color";
-                                        payload =  {"color":{"hsv": payload}};
-                                        break;
-                                    case 'color_hue':
-                                        command = "color";
-                                        payload =  {"color":{"hue": payload}};
-                                        break;
-                                    case 'color_saturation':
-                                        command = "color";
-                                        payload =  {"color":{"saturation": payload}};
-                                        break;
-
-                                    case 'color_temp':
-                                        if (!isNaN(transition)) {
-                                            options['transition'] = transition;
-                                        }
-                                        break;
-
-                                    case 'brightness_move':
-                                    case 'brightness_step':
-                                    case 'alert':
-                                    default: {
-                                        break;
-                                    }
-                                }
-                                break;
-
-                            case 'homekit':
-                                let device = node.server.getDeviceById(node.config.device_id)
-
-                                if (device === null) {
-                                    // Fallback to check for group
-                                    device = node.server.getGroupById(node.config.device_id)
-                                }
-
-                                payload = node.formatHomeKit(message, device);
-
-                                if (!isNaN(transition)) {
-                                    options['transition'] = transition;
-                                }
-
-                                break;
-
                             case 'json':
                                 break;
 
@@ -191,25 +156,31 @@ module.exports = function(RED) {
                             node.cleanTimer = setTimeout(function(){
                                 node.status({}); //clean
                             }, 3000);
-
-                            var toSend = {};
+                          
                             var text = '';
+
                             if (typeof(payload) == 'object') {
-                                toSend = payload;
                                 text = 'json';
                             } else {
-                                toSend[command] = payload;
-                                text = command+': '+payload;
-                            }
-                            //add options
-                            if (Object.keys(options).length) {
-                                for (var key in options) {
-                                    toSend[key] = options[key];
-                                }
+                                text = command + ': ' + payload;
                             }
 
-                            node.log('Published to mqtt topic: ' + node.server.getBaseTopic()+'/'+node.config.friendly_name + '/set : ' + JSON.stringify(toSend));
-                            node.server.mqtt.publish(node.server.getBaseTopic()+'/'+node.config.friendly_name + '/set', JSON.stringify(toSend));
+                            const mqtttopic = node.server.getBaseTopic() + "/_CLIENTS/ZWAVE_GATEWAY-"+node.server.getServerName()+"/api/writeValue/set";
+                            const args = {
+                                args: [
+                                    {
+                                        nodeId:parseInt(node.config.device_id),
+                                        commandClass:commandClass,
+                                        endPoint:0,
+                                        property:command
+                                    },
+                                    payload
+                                ]
+                                
+                            };
+                            
+                            node.log('Published to mqtt topic: ' + mqtttopic + ' : ' + JSON.stringify(args));
+                            node.server.mqtt.publish(mqtttopic, JSON.stringify(args));
 
                             node.status({
                                 fill: "green",
@@ -223,14 +194,14 @@ module.exports = function(RED) {
                             node.status({
                                 fill: "red",
                                 shape: "dot",
-                                text: "node-red-contrib-zigbee2mqtt/out:status.no_payload"
+                                text: "node-red-contrib-zwavejs2mqtt2/out:status.no_payload"
                             });
                         }
                     } else {
                         node.status({
                             fill: "red",
                             shape: "dot",
-                            text: "node-red-contrib-zigbee2mqtt/out:status.no_device"
+                            text: "node-red-contrib-zwavejs2mqtt2/out:status.no_device"
                         });
                     }
                 });
@@ -239,72 +210,16 @@ module.exports = function(RED) {
                 node.status({
                     fill: "red",
                     shape: "dot",
-                    text: "node-red-contrib-zigbee2mqtt/out:status.no_server"
+                    text: "node-red-contrib-zwavejs2mqtt2/out:status.no_server"
                 });
             }
         }
 
-        formatHomeKit(message, device) {
-            if ("hap" in message && message.hap.context === undefined) {
-                return null;
-            }
-
-            var payload = message['payload'];
-            var msg = {};
-
-            if (payload.On !== undefined) {
-                if ("lastPayload" in device) {
-                    // console.log(device.lastPayload);
-                    // if ("brightness" in device.lastPayload) msg['brightness'] = device.lastPayload.brightness;
-                }
-                msg['state'] = payload.On?"on":"off";
-            }
-            if (payload.Brightness !== undefined) {
-                msg['brightness'] =  Zigbee2mqttHelper.convertRange(payload.Brightness, [0,100], [0,255]);
-                if ("lastPayload" in device) {
-                    if ("lastPayload" in device) device.lastPayload.brightness = msg['brightness'];
-                }
-                if (payload.Brightness >= 254) payload.Brightness = 255;
-                msg['state'] = payload.Brightness > 0?"on":"off"
-            }
-            if (payload.Hue !== undefined) {
-                msg['color'] = {"hue":payload.Hue};
-                if ("lastPayload" in device) {
-                    if ("brightness" in device.lastPayload) msg['brightness'] = device.lastPayload.brightness;
-                    if ("color" in device.lastPayload && "saturation" in device.lastPayload.color) msg['color']['saturation'] = device.lastPayload.color.saturation;
-                    if ("color" in device.lastPayload && "hue" in device.lastPayload.color) device.lastPayload.color.hue = payload.Hue;
-                }
-                msg['state'] = "on";
-            }
-            if (payload.Saturation !== undefined) {
-                msg['color'] = {"saturation":payload.Saturation};
-                if ("lastPayload" in device) {
-                    if ("brightness" in device.lastPayload) msg['brightness'] = device.lastPayload.brightness;
-                    if ("color" in device.lastPayload && "hue" in device.lastPayload.color) msg['color']['hue'] = device.lastPayload.color.hue;
-                    if ("color" in device.lastPayload && "saturation" in device.lastPayload.color) msg['color']['saturation'] = payload.Saturation;
-                }
-                msg['state'] = "on";
-            }
-            if (payload.ColorTemperature !== undefined) {
-                msg['color_temp'] = Zigbee2mqttHelper.convertRange(payload.ColorTemperature, [140,500], [50,400]);
-                if ("lastPayload" in device) {
-                    if ("color_temp" in device.lastPayload)  device.lastPayload.color_temp = msg['color_temp'];
-                }
-                msg['state'] = "on";
-            }
-            if (payload.LockTargetState !== undefined) {
-                msg['state'] = payload.LockTargetState?"LOCK":"UNLOCK";
-            }
-            if (payload.TargetPosition !== undefined) {
-                msg['position'] = payload.TargetPosition;
-            }
-
-            return msg;
-        }
+        
     }
 
 
-    RED.nodes.registerType('zigbee2mqtt-out', Zigbee2mqttNodeOut);
+    RED.nodes.registerType('zwavejs2mqtt2-out', zwavejs2mqtt2NodeOut);
 };
 
 

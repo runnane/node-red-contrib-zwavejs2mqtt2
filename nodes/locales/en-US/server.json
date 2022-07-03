@@ -1,6 +1,7 @@
 {
     "label": {
         "base_topic": "Base topic",
+        "base_mqtt_name": "Server name",
         "name": "Name",
         "host": "Host",
         "mqtt_port": "MQTT Port",
