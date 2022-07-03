@@ -4,8 +4,10 @@
         "server": "Server",
         "topic": "Device",
         "command": "Command",
+        "commandClass": "CommandClass",
         "payload": "Payload",
         "transition": "Transition, sec",
+        
         "refresh": "Refresh",
         "refresh_devices_list": "Refresh Devices List"
     },
