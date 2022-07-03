@@ -1,5 +1,7 @@
-# node-red-contrib-zwavejs2mqtt2
+# @runnane/node-red-contrib-zwavejs2mqtt2
 Node-Red Nodes for zwavejs2mqtt2 connectivity.
+
+intitially forked from https://github.com/andreypopov/node-red-contrib-zigbee2mqtt
 
 Available nodes are:
 * zwavejs2mqtt2-in: listen to device
